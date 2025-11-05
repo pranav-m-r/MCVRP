@@ -2,44 +2,55 @@ import re
 import json
 import math
 import os
-# from pprint import pprint, pformat
-
+from numpy.random.tests import data
 
 datasets = {}
 
 def euclidian_distance(point1: tuple[int, int], point2: tuple[int, int]) -> float:
     dist = math.sqrt((abs(point1[0] - point2[0]) ** 2) + (abs(point1[1] - point2[1]) ** 2))
-    return int(dist * 100)
+    return dist
 
-def format_dataset(dataset : dict) -> list[list[int]]:
-    vehicle_locaitons = set(dataset['vehicle_locations'])
-    target_locations = set(dataset['target_locations'])
-    locations = vehicle_locaitons.copy()
-    locations = list(locations.union(target_locations))
+def format_dataset(dataset : dict, precision) -> list[list[int]]:
+    demand_dict = {}
+    locations = []
     
+    for i in range(len(dataset['target_locations'])):
+        demand_dict[dataset['target_locations'][i]] = dataset['weights'][i]
+        locations.append(dataset['target_locations'][i])
+
+    for i in range(len(dataset['vehicle_locations'])):
+        if dataset['vehicle_locations'][i] not in demand_dict:
+            demand_dict[dataset['vehicle_locations'][i]] = 0
+            locations.append(dataset['vehicle_locations'][i])
+        
+    # print("\n\ndemand dict = ", demand_dict)
+        
+    vehicle_locaitons = set(dataset['vehicle_locations'])
+    demands = []
     starts = []
     ends = []
     distance_matrix = []
     for i in range(len(locations)):
+        demands.append(demand_dict[locations[i]])
         if locations[i] in vehicle_locaitons:
             starts.append(i)
             ends.append(i)
         distances = []
         for j in range(len(locations)):
-            distances.append(round(euclidian_distance(locations[i], locations[j]), 2))
+            distances.append(int(precision * euclidian_distance(locations[i], locations[j])))
         distance_matrix.append(distances)
     
     per_vehicle_cap = (sum(dataset['weights']) + len(starts) - 1) // len(starts)
     return {
         "distance_matrix" : distance_matrix,
         "num_vehicles": len(starts),
-        "demands": dataset['weights'],
+        "demands": demands,
         "vehicle_capacities": [per_vehicle_cap] * len(starts),
         "starts": starts,
         "ends": ends
     }
         
-def parse_and_save() -> None:
+def parse_and_save(precision) -> None:
     """
     Parses and saves data as json
     
@@ -83,16 +94,12 @@ def parse_and_save() -> None:
                 "weights": weights
             }
             
-            if(ds_no == 1):
-                print(dataset)
+            dataset = format_dataset(dataset, precision)
             
-            dataset = format_dataset(dataset)
-
             json_file_path = os.path.join('cached_datasets', f"dataset_{ds_no}.json")
             with open(json_file_path, 'w') as json_file:
                 json.dump(dataset, json_file) 
             saved += 1
-                
     print(f"Parsed and saved {saved} Datasets")
 
 

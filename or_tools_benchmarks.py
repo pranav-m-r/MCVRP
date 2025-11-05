@@ -1,14 +1,16 @@
 import json
 import os
+from parse_input import parse_and_save
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 
 # ----------- CONSTANTS -----------
-DATASET_NO = 0
+DATASET_NO = 1
 CUMULATIVE_DIST = 5000000
 DIST_SLACK = 0
 CAP_SLACK = 0
-TIME_LIMIT = 45
+PRECISION = 10
+TIME_LIMIT = 60 
 
 def get_dataset(dataset_no = DATASET_NO):
     file_path = os.path.join('cached_datasets', f"dataset_{dataset_no}.json")
@@ -17,7 +19,7 @@ def get_dataset(dataset_no = DATASET_NO):
 
 def print_solution(data, manager, routing, solution):
     """Prints solution on console."""
-    print(f"Objective: {solution.ObjectiveValue() / 100:.2f}")
+    print(f"Objective: {solution.ObjectiveValue() / PRECISION:.2f}")
     total_distance = 0
     total_load = 0
     for vehicle_id in range(data["num_vehicles"]):
@@ -37,12 +39,12 @@ def print_solution(data, manager, routing, solution):
                 previous_index, index, vehicle_id
             )
         plan_output += f" {manager.IndexToNode(index)} Load({route_load})\n"
-        plan_output += f"Distance of the route: {route_distance / 100:.2f}m\n"
+        plan_output += f"Distance of the route: {route_distance / PRECISION:.2f}m\n"
         plan_output += f"Load of the route: {route_load}\n"
         print(plan_output)
         total_distance += route_distance
         total_load += route_load
-    print(f"Total distance of all routes: {total_distance / 100:.2f}m")
+    print(f"Total distance of all routes: {total_distance / PRECISION:.2f}m")
     print(f"Total load of all routes: {total_load}")
     
 
@@ -105,9 +107,9 @@ def find_solution(dataset_no=DATASET_NO):
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     )
-    search_parameters.local_search_metaheuristic = (
-        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-    )
+    # search_parameters.local_search_metaheuristic = (
+    #     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    # )
     search_parameters.time_limit.FromSeconds(TIME_LIMIT)
 
     solution = routing.SolveWithParameters(search_parameters)
@@ -118,6 +120,7 @@ def find_solution(dataset_no=DATASET_NO):
         print(f"NO SOLUTION exists for the given parameters!!")
         
 if __name__ == "__main__":
+    parse_and_save(PRECISION)
     
     print("Dataset :", DATASET_NO)
     print("Cumulative Dist :", CUMULATIVE_DIST)
